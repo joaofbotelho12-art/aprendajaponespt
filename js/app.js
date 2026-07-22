@@ -256,3 +256,56 @@ document.querySelectorAll('a[href^="#"]').forEach(function(a){
   }
 })();
 
+/* ============ PASS-THROUGH UTM PARAMETERS TO HOTMART LINKS ============ */
+(function() {
+  function passUtmsToHotmartLinks() {
+    var searchParams = new URLSearchParams(window.location.search);
+    
+    // Fallback: recupa parâmetros salvos no localStorage pelo Utmify se a URL atual estiver limpa
+    var trackingKeys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'src', 'xcod', 'sck', 'fbclid', 'gclid'];
+    trackingKeys.forEach(function(key) {
+      if (!searchParams.has(key)) {
+        try {
+          var stored = localStorage.getItem(key);
+          if (stored && stored !== 'null' && stored !== 'undefined') {
+            searchParams.set(key, stored);
+          }
+        } catch(e) {}
+      }
+    });
+
+    if ([...searchParams.keys()].length === 0) return;
+
+    document.querySelectorAll('a[href*="pay.hotmart.com"]').forEach(function(a) {
+      try {
+        var url = new URL(a.href);
+        searchParams.forEach(function(val, key) {
+          if (!url.searchParams.has(key)) {
+            url.searchParams.set(key, val);
+          }
+        });
+        a.href = url.toString();
+      } catch (e) {
+        var separator = a.href.indexOf('?') !== -1 ? '&' : '?';
+        a.href = a.href + separator + searchParams.toString();
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', passUtmsToHotmartLinks);
+  } else {
+    passUtmsToHotmartLinks();
+  }
+
+  // Intercepta o clique para garantir que os parâmetros estejam aplicados no momento exato do clique
+  document.addEventListener('click', function(e) {
+    var link = e.target.closest('a[href*="pay.hotmart.com"]');
+    if (link) {
+      passUtmsToHotmartLinks();
+    }
+  }, true);
+})();
+
+
+
